@@ -1,13 +1,13 @@
-from typing import Optional, Tuple
+from typing import Optional
 from flood.board import Board
-from queue import PriorityQueue
 from flood.players.base import BasePlayer
-import time
+import random
+from collections import defaultdict
 
 class TauriPlayer(BasePlayer):
     def __init__(self):
-        self.initial_depth = 5
-        self.time_limit_per_move = 60.0
+        self.max_depth = 30
+        self.simulations = 20000
 
     def get_best_move(
         self,
@@ -16,32 +16,30 @@ class TauriPlayer(BasePlayer):
         opponent_start_pos: Optional[tuple[int, int]] = None,
         timeout: Optional[float] = None,
     ) -> int:
-        start_time = time.time()
-        depth = self.initial_depth
-        best_move = -1
-        best_score = -1
+        first_move_scores = defaultdict(list)
+        for _ in range(self.simulations):
+            path, move = self.randomized_search(board, start_pos, opponent_start_pos, self.max_depth)
+            if move is not None:
+                first_move_scores[move].append(len(path))
         
-        while time.time() - start_time < self.time_limit_per_move:
-            score, move = self.lookahead_search(board, start_pos, opponent_start_pos, depth, start_time)
-            if move is not None and score > best_score:
-                best_score = score
-                best_move = move
-            depth += 1
+        best_move = min(first_move_scores, key=lambda move: min(first_move_scores[move]))
         return best_move
+    
+    def randomized_search(self, board, start_pos, opponent_start_pos, depth):
+        current_board = board
+        path = []
 
-    def lookahead_search(self, board, start_pos, opponent_start_pos, depth, start_time):
-        if depth == 0 or board.is_solved() or time.time() - start_time > self.time_limit_per_move:
-            return board.count_flooded_cells(start_pos), None
+        for _ in range(depth):
+            valid_moves = list(current_board.get_valid_moves(start_pos, opponent_start_pos))
+            if not valid_moves:
+                break
 
-        valid_moves = board.get_valid_moves(start_pos, opponent_start_pos)
-        best_color = -1
-        max_score = -1
+            move = random.choice(valid_moves)
+            path.append(move)
+            current_board = current_board.do_move(start_pos, move)
 
-        for color in valid_moves:
-            temp_board = board.do_move(start_pos, color)
-            score, _ = self.lookahead_search(temp_board, start_pos, opponent_start_pos, depth - 1, start_time)
-            if score > max_score:
-                max_score = score
-                best_color = color
-        
-        return max_score, best_color
+            if current_board.is_solved():
+                break
+
+        first_move = path[0] if path else -1
+        return path, first_move
