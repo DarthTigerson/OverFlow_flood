@@ -7,11 +7,13 @@ import typer
 from flood.players.base import BasePlayer
 from flood.players.greedy import GreedyPlayer
 from flood.players.random import RandomPlayer
+from flood.players.proclarush_taonas import ProclarushTaonasPlayer
 
 PLAYER_TYPES: dict[str, Type[BasePlayer]] = {
     # Please keep this sorted alphabetically
     "greedy": GreedyPlayer,
     "random": RandomPlayer,
+    "taonas": ProclarushTaonasPlayer,
 }
 
 
